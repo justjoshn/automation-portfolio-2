@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, gql } from '@apollo/client';
 import { Link } from 'react-router-dom';
+import useDebounce from '../hooks/useDebounce';
 
 const SEARCH_PROFILES = gql`
   query searchProfiles($query: String!) {
@@ -23,14 +24,15 @@ const DELETE_PROFILE = gql`
 
 const ProfileList: React.FC = () => {
   const [query, setQuery] = useState('');
-  const { loading, error, data } = useQuery(SEARCH_PROFILES, {
-    variables: { query },
-    skip: !query
+  const debouncedQuery = useDebounce(query, 500); // 500ms debounce delay
+  const { loading, error, data, refetch } = useQuery(SEARCH_PROFILES, {
+    variables: { query: debouncedQuery },
+    skip: !debouncedQuery,
   });
   const [deleteProfile] = useMutation(DELETE_PROFILE);
 
   const handleDelete = (id: string) => {
-    deleteProfile({ variables: { id } });
+    deleteProfile({ variables: { id } }).then(() => refetch());
   };
 
   if (loading) return <p>Loading...</p>;
